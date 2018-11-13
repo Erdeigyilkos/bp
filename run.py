@@ -7,24 +7,32 @@ import pcapy
 import dpkt
 from subtypes import *
 import json
+import csv
 
 
 interface = 'wlo1'
-monitor_enable  = ''
-monitor_disable = ''
+monitor_enable  = 'sudo service network-manager stop;sudo ifconfig wlo1 down;sudo iwconfig wlo1 mode monitor;sudo ifconfig wlo1 up'
+monitor_disable = 'sudo ifconfig wlo1 down;sudo iwconfig wlo1 mode Managed;sudo ifconfig wlo1 up;sudo service network-manager start'
 change_channel  = 'iw dev wlo1 set channel %s'
 
 channels = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
 
 
 def start():
-    #os.system(monitor_enable)
-    try: sniff(interface)
+    os.system(monitor_enable)
+    try: 
+        sniff(interface)
     except KeyboardInterrupt: 
         with open("data_file.json", "w") as write_file:
             json.dump(recordToExport, write_file)
+
+        with open("export.csv", "w") as output:
+            writer = csv.writer(output, lineterminator='\n')
+            writer.writerows(recordToExport)
         print foudedMac    
         print(str(len(foudedMac)) + " Found")
+        os.system(monitor_disable)
+        os.system("R < test.r --no-save")
         sys.exit()
 
 
@@ -71,7 +79,7 @@ def sniff(interface):
                     'access_point_name': '(n/a)', 
                     'access_point_address': '(n/a)' 
                 }
-                addToArray(record["source_address"],record["strength"])
+                #addToArray(record["source_address"],record["strength"])
                 print record
                 
             elif frame.type == dpkt.ieee80211.DATA_TYPE:
@@ -99,11 +107,13 @@ def channels_switch(newchange):
 
 foudedMac=[]
 recordToExport=[]
+recordToExport.append(["Date","mac","signal"])
 
 def addToArray(mac,rssi):
-    if mac not in foudedMac:
-        foudedMac.append(mac)
-        recordToExport.append([str(datetime.datetime.now()),mac,rssi])
+    if rssi<-200:
+        return
+    foudedMac.append(mac)
+    recordToExport.append([str(time.time()),mac,rssi])
        
     
 start()
