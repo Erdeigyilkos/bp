@@ -17,22 +17,24 @@ change_channel  = 'iw dev wlo1 set channel %s'
 
 channels = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
 
+minutes = 0
+sub_type_filter=["beacon","probe-response","qos-data"]
 
 def start():
     os.system(monitor_enable)
     try: 
         sniff(interface)
     except KeyboardInterrupt: 
-        with open("data_file.json", "w") as write_file:
-            json.dump(recordToExport, write_file)
-
         with open("export.csv", "w") as output:
             writer = csv.writer(output, lineterminator='\n')
             writer.writerows(recordToExport)
-        print foudedMac    
-        print(str(len(foudedMac)) + " Found")
+        with open("exportNumberOfDevice.csv", "w") as output:
+            writer = csv.writer(output, lineterminator='\n')
+            writer.writerows(NumberOfDevicesExport)
+        
         os.system(monitor_disable)
         os.system("R < test.r --no-save")
+        os.system("R < graphDevices.r --no-save")
         sys.exit()
 
 
@@ -46,8 +48,16 @@ def sniff(interface):
     timeout = 100
     packets = pcapy.open_live(interface, max_packet_size, promiscuous, timeout)
     packets.setfilter('') 
-    
+
+   
+        
     def loop(header, data):
+        global minutes
+        
+        if minutes!= datetime.datetime.now().minute:
+            minutes=datetime.datetime.now().minute
+            addNumberOfDevices()
+        exit
         
         try:
             packet = dpkt.radiotap.Radiotap(data)
@@ -65,8 +75,8 @@ def sniff(interface):
                     'access_point_name': frame.ssid.data if hasattr(frame, 'ssid') else '(n/a)',
                     'access_point_address': to_address(frame.mgmt.bssid)
                 }
-                addToArray(record["source_address"],record["strength"])
-                print record
+                addToFullExport(record["source_address"],record["strength"],record["subtype"])
+                #print record
                 
             elif frame.type == dpkt.ieee80211.CTL_TYPE:
                 record = {
@@ -80,7 +90,7 @@ def sniff(interface):
                     'access_point_address': '(n/a)' 
                 }
                 #addToArray(record["source_address"],record["strength"])
-                print record
+                #print record
                 
             elif frame.type == dpkt.ieee80211.DATA_TYPE:
                 record = {
@@ -93,8 +103,8 @@ def sniff(interface):
                     'access_point_name': '(n/a)', 
                     'access_point_address': to_address(frame.data_frame.bssid) if hasattr(frame.data_frame, 'bssid') else '(n/a)'
                 }
-                addToArray(record["source_address"],record["strength"])
-                print record
+                addToFullExport(record["source_address"],record["strength"],record["subtype"])
+                #print record
             
                  
         except Exception as e:
@@ -105,14 +115,32 @@ def channels_switch(newchange):
     channel = str(channels[0])
     os.system(change_channel % channel)
 
-foudedMac=[]
+
 recordToExport=[]
 recordToExport.append(["Date","mac","signal"])
 
-def addToArray(mac,rssi):
+NumberOfDevicesExport=[["Date","number",]]
+
+foundedMac = []
+
+
+def addNumberOfDevices():
+    NumberOfDevicesExport.append([str(time.time()),len(foundedMac)])
+    while len(foundedMac) > 0 : foundedMac.pop()
+
+def checkMac(mac):
+    
+    if mac not in foundedMac:
+        foundedMac.append(mac)
+
+
+def addToFullExport(mac,rssi,sub_type):
+    
+    if sub_type not in sub_type_filter:
+        checkMac(mac)
+        print(sub_type)
     if rssi<-200:
         return
-    foudedMac.append(mac)
     recordToExport.append([str(time.time()),mac,rssi])
        
     
