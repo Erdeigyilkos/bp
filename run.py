@@ -6,6 +6,7 @@ import datetime
 import pcapy
 import dpkt
 from subtypes import *
+from oui import *
 import json
 import csv
 
@@ -18,23 +19,19 @@ change_channel  = 'iw dev wlo1 set channel %s'
 channels = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
 
 minutes = 0
+minuteDeviceExport = datetime.datetime.now().minute+1
 sub_type_filter=["beacon","probe-response","qos-data"]
 
+
 def start():
+    setupExportFolder()
     os.system(monitor_enable)
     try: 
         sniff(interface)
     except KeyboardInterrupt: 
-        with open("export.csv", "w") as output:
-            writer = csv.writer(output, lineterminator='\n')
-            writer.writerows(recordToExport)
-        with open("exportNumberOfDevice.csv", "w") as output:
-            writer = csv.writer(output, lineterminator='\n')
-            writer.writerows(NumberOfDevicesExport)
         
         os.system(monitor_disable)
-        os.system("R < test.r --no-save")
-        os.system("R < graphDevices.r --no-save")
+        os.system("R < graphexport.R --no-save")
         sys.exit()
 
 
@@ -52,12 +49,22 @@ def sniff(interface):
    
         
     def loop(header, data):
-        global minutes
+        global minutes,minuteDeviceExport
         
         if minutes!= datetime.datetime.now().minute:
             minutes=datetime.datetime.now().minute
             addNumberOfDevices()
-        exit
+        
+
+        if minuteDeviceExport== datetime.datetime.now().minute:
+            
+            minuteDeviceExport=(datetime.datetime.now().minute+1)%60
+            print('Time' + str(datetime.datetime.now().minute))
+            print('NextTime' + str(minuteDeviceExport))
+            writeNumberOfDevice()
+            writeFullTraffic()
+            writeVentorCount()
+        
         
         try:
             packet = dpkt.radiotap.Radiotap(data)
@@ -117,31 +124,91 @@ def channels_switch(newchange):
 
 
 recordToExport=[]
-recordToExport.append(["Date","mac","signal"])
+recordToExport.append(["Date","mac","signal","vendor"])
 
 NumberOfDevicesExport=[["Date","number",]]
 
 foundedMac = []
+SSIDMac = []
 
+DeviceVendor = {}
 
 def addNumberOfDevices():
     NumberOfDevicesExport.append([str(time.time()),len(foundedMac)])
     while len(foundedMac) > 0 : foundedMac.pop()
 
-def checkMac(mac):
-    
-    if mac not in foundedMac:
+def checkMac(mac,manufacter):
+    global DeviceVendor
+    if mac not in foundedMac and mac not in SSIDMac: 
         foundedMac.append(mac)
+        if manufacter not in DeviceVendor:
+            DeviceVendor[manufacter]=1
+        else:
+            count = DeviceVendor[manufacter]+1
+            DeviceVendor[manufacter]=count
+            #print(DeviceVendor)
+            
+
+
+
+
 
 
 def addToFullExport(mac,rssi,sub_type):
+    if sub_type in sub_type_filter and mac not in SSIDMac:
+        SSIDMac.append(mac)
+    
+    device_type = 'unknown'
+    if mac[0:8] in oui:
+        device_type = oui[mac[0:8]]
     
     if sub_type not in sub_type_filter:
-        checkMac(mac)
+        checkMac(mac,device_type)
+        exit
         print(sub_type)
     if rssi<-200:
         return
-    recordToExport.append([str(time.time()),mac,rssi])
+    
+    
+
+    recordToExport.append([str(time.time()),mac,rssi,device_type])
        
+def writeNumberOfDevice():
+    name = 'export/Device/numberDevice' + str(datetime.datetime.now()) + '.csv'
+    with open(name, "w") as output:
+        writer = csv.writer(output, lineterminator='\n')
+        writer.writerows(NumberOfDevicesExport)
+    while len(NumberOfDevicesExport) > 1 : NumberOfDevicesExport.pop()
+
+def writeFullTraffic():
+    name = 'export/Full/fullexport' + str(datetime.datetime.now()) + '.csv'
+    with open(name, "w") as output:
+        writer = csv.writer(output, lineterminator='\n')
+        writer.writerows(recordToExport)
+    while len(recordToExport) > 1 : recordToExport.pop()
+
+def writeVentorCount():
+    name = 'export/Vendor/vendor' + str(datetime.datetime.now()) + '.csv'
+    ExportList=[]
+    ExportList.append(["Date","Vendor","Count"])
+    for x, y in DeviceVendor.items():
+        ExportList.append([str(time.time()),x,y])
+   
+    with open(name, "w") as output:
+        writer = csv.writer(output, lineterminator='\n')
+        writer.writerows(ExportList)
+    DeviceVendor.clear()
+
+
+    
+def setupExportFolder():
+    if not os.path.exists("export"):
+        os.makedirs("export")
+    if not os.path.exists("export/Full"):
+        os.makedirs("export/Full")
+    if not os.path.exists("export/Device"):
+        os.makedirs("export/Device")
+    if not os.path.exists("export/Vendor"):
+        os.makedirs("export/Vendor")
     
 start()
