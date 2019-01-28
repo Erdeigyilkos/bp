@@ -1,5 +1,10 @@
-data <- read.csv("~/Plocha/exportNumberOfDevice.csv")
+setwd("~/Plocha/export/Device")
+files = list.files(pattern="numberDevice.*.csv")
 
-pdf("numberOfDevice.pdf",width=6,height=4,paper='special') 
-plot(data$Date, data$number,type="l")
+myfiles = do.call(rbind, lapply(files, function(x) read.csv(x)))
+
+setwd("~/Plocha/export")
+
+pdf("numberOfDeviceGraph.pdf",width=6,height=4,paper='special') 
+plot(myfiles$Date, myfiles$number,type="l")
 dev.off()
