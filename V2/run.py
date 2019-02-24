@@ -7,25 +7,25 @@ import pcapy
 import dpkt
 from subtypes import *
 from oui import *
+from settings import * 
 import json
 import csv
 
 
-interface = 'wlo1'
-monitor_enable  = 'sudo service network-manager stop;sudo ifconfig wlo1 down;sudo iwconfig wlo1 mode monitor;sudo ifconfig wlo1 up'
-monitor_disable = 'sudo ifconfig wlo1 down;sudo iwconfig wlo1 mode Managed;sudo ifconfig wlo1 up;sudo service network-manager start'
-change_channel  = 'iw dev wlo1 set channel %s'
 
-channels = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
 
-minutes = 0
+
+minutes = datetime.datetime.now().minute
 minuteDeviceExport = datetime.datetime.now().minute+1
-sub_type_filter=["beacon","probe-response","qos-data"]
+
 
 
 def start():
+
+    SSIDMac.append("00:00:00:00:00:01")
     setupExportFolder()
     os.system(monitor_enable)
+
     try: 
         sniff(interface)
     except KeyboardInterrupt: 
@@ -155,7 +155,7 @@ def checkMac(mac,manufacter):
 
 
 def addToFullExport(mac,rssi,sub_type):
-    if rssi<-55:
+    if rssi<-80:
         return
 
     if sub_type in sub_type_filter and mac not in SSIDMac:
@@ -171,9 +171,9 @@ def addToFullExport(mac,rssi,sub_type):
     device_type = 'unknown'
     if mac[0:8] in oui:
         device_type = oui[mac[0:8]]
+        checkMac(mac,device_type)
     
-    #if sub_type not in sub_type_filter:
-    checkMac(mac,device_type)
+    
     print(sub_type)
     recordToExport.append([str(time.time()),mac,rssi,device_type])
        
