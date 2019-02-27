@@ -32,7 +32,8 @@ def start():
         
         os.system(monitor_disable)
         writeVentorCount()
-        os.system("R < graphexport.R --no-save")
+        exportStackBar()
+        #os.system("R < graphexport.R --no-save")
         sys.exit()
 
 
@@ -50,7 +51,7 @@ def sniff(interface):
    
         
     def loop(header, data):
-        global minutes,minuteDeviceExport
+        global minutes,minuteDeviceExport,StackBarActualRecord,StackBarAllRecords,StackBarMAC
         
         if minutes!= datetime.datetime.now().minute:
             minutes=datetime.datetime.now().minute
@@ -65,6 +66,11 @@ def sniff(interface):
             writeNumberOfDevice()
             writeFullTraffic()
             
+            StackBarAllRecords[str(time.time())] = StackBarActualRecord
+            StackBarMAC=[]
+            StackBarActualRecord={}
+
+                       
         
         
         try:
@@ -140,9 +146,28 @@ def addNumberOfDevices():
     NumberOfDevicesExport.append([str(time.time()),len(foundedMac)])
     while len(foundedMac) > 0 : foundedMac.pop()
 
+
+StackBarAllRecords = {}
+StackBarActualRecord={}
+StackBarMAC=[]
+StackBarManufacter=[]
+
 def checkMac(mac,manufacter):
-    global DeviceVendor
-    if mac not in foundedMacVendor: 
+    global DeviceVendor,StackBarMAC
+
+    if mac not in StackBarMAC:
+        StackBarMAC.append(mac)
+
+        if manufacter not in StackBarManufacter:
+            StackBarManufacter.append(manufacter)
+
+        if manufacter not in StackBarActualRecord:
+            StackBarActualRecord[manufacter] = 1
+        else:
+            StackBarActualRecord[manufacter] +=1 
+
+
+    if mac not in foundedMacVendor: #pocty zarizeni
         foundedMacVendor.append(mac)
         if manufacter not in DeviceVendor:
             DeviceVendor[manufacter]=1
@@ -155,7 +180,7 @@ def checkMac(mac,manufacter):
 
 
 def addToFullExport(mac,rssi,sub_type):
-    if rssi<-80:
+    if rssi<-rssi_level_filter:
         return
 
     if sub_type in sub_type_filter and mac not in SSIDMac:
@@ -203,6 +228,52 @@ def writeVentorCount():
         writer.writerows(ExportList)
     DeviceVendor.clear()
 
+def exportStackBar():
+    global StackBarAllRecords,StackBarManufacter
+
+    print('--------PRED dopnineni 0-----------')
+    for x,y in StackBarAllRecords.items():
+        print(x)
+        print(StackBarAllRecords[x])
+    print('--------------/PRED dopleni 0-----------')
+
+    for time,manufacter_dict in StackBarAllRecords.items():
+        for manufacter in StackBarManufacter:
+            if manufacter not in manufacter_dict:
+                manufacter_dict[manufacter]=0
+
+    print('--------Po doplneni 0-----------')
+    for x in sorted(StackBarAllRecords.iterkeys()):
+        print(x)
+        print(StackBarAllRecords[x])
+    print('--------------/Po dolneni 0-----------')
+
+    StackBarExport=[]
+    StackBarLine=["Date"]
+        
+    for manufacter in sorted(StackBarAllRecords.values()[0].iterkeys()):
+        StackBarLine.append(manufacter)
+    
+    StackBarExport.append(StackBarLine)
+    
+    StackBarLine=[]
+    for time in sorted(StackBarAllRecords.iterkeys()):
+        StackBarLine.append(time)
+        for manufacter in sorted(StackBarAllRecords[time].iterkeys()):
+            StackBarLine.append(StackBarAllRecords[time][manufacter])
+        StackBarExport.append(StackBarLine)
+        StackBarLine=[]
+
+    print('-----------EXPORT---------')
+    print(StackBarExport)
+    print('-----------EXPORT---------')
+
+    name = 'export/StackBar/stackBar' + str(datetime.datetime.now()) + '.csv'
+    with open(name, "w") as output:
+        writer = csv.writer(output, lineterminator='\n')
+        writer.writerows(StackBarExport)
+   
+
 
     
 def setupExportFolder():
@@ -214,5 +285,7 @@ def setupExportFolder():
         os.makedirs("export/Device")
     if not os.path.exists("export/Vendor"):
         os.makedirs("export/Vendor")
+    if not os.path.exists("export/StackBar"):
+        os.makedirs("export/StackBar")
     
 start()
