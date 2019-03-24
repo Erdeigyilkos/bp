@@ -1,23 +1,28 @@
-setwd("/home/tom/Plocha/V2/export/Full")
+
+args<-commandArgs(TRUE)
+q = args[1]
+
+
+setwd(paste(q,"Full", sep="/"))
 files = list.files(pattern="fullexport.*.csv")
 myfiles = do.call(rbind, lapply(files, function(x) read.csv(x)))
 
-setwd("~/Plocha/V2/export/Device")
+setwd(paste(q,"Device", sep="/"))
 files = list.files(pattern="numberDevice.*.csv")
 myfiles2 = do.call(rbind, lapply(files, function(x) read.csv(x)))
 
-setwd("~/Plocha/V2/export/Vendor")
+setwd(paste(q,"Vendor", sep="/"))
 files = list.files(pattern="vendor.*.csv")
 myfiles3 = do.call(rbind, lapply(files, function(x) read.csv(x)))
 
-setwd("~/Plocha/V2/export/StackBar")
+setwd(paste(q,"StackBar", sep="/"))
 files = list.files(pattern="stackBar.*.csv")
 myfiles4 = do.call(rbind, lapply(files, function(x) read.csv(x)))
 
 
 
 
-setwd("/home/tom/Plocha/V2/export")
+setwd(args[1])
 
 
 pdf("graphs-device.pdf",width=20,height=15,paper='special') 
@@ -31,16 +36,17 @@ col_vector = unlist(mapply(brewer.pal, qual_col_pals$maxcolors, rownames(qual_co
 #pie(rep(1,n), col=sample(col_vector, n))
 
 
-par(xpd=T, mar=par()$mar+c(0,0,0,20))
+colors =  sample(col_vector, n)
+
+par(xpd=T, mar=par()$mar+c(5,20,0,0))
 
 data = myfiles4
 data$Date<-NULL
 
-barplot(t(data), main="Autos", ylab="Total", col=sample(col_vector, n), space=0.1, cex.axis=0.8, las=1,
+barplot(t(data), main="Barplot", ylab="Signal", col=colors, space=0.1, cex.axis=0.8, las=1,
    names.arg=c(myfiles4$Date), cex=0.8) 
    
-
-legend(2.25,4, names(data), cex=0.8, fill=sample(col_vector, n));
+legend("left", inset=-.325, names(data), cex=0.8, fill=colors);
 
 
 #numberofdevice
@@ -51,7 +57,6 @@ pie(myfiles3$Count,labels=paste(myfiles3$Vendor, myfiles3$Count),  main="Pie Cha
 
 
 plot(myfiles2$Date, myfiles2$number,type="l")
-
 
 
 
@@ -99,6 +104,7 @@ ggplot(myfiles, aes(x = Date, y = signal, colour = mac)) +  geom_point() +  face
 
 
 ggplot(r, aes(x = GroupDate, y = Signal, colour = GroupMac)) +  geom_point() +  facet_wrap( ~ GroupMac)
+
 
 dev.off()
 

@@ -8,16 +8,21 @@ import dpkt
 from subtypes import *
 from oui import *
 from settings import * 
-import json
 import csv
 
+dirname, filename = os.path.split(os.path.abspath(__file__))
+dirname+="/export"
+Rcommand= "sudo Rscript graphexport.R " + dirname
 
 
+minuteLearning = (datetime.datetime.now().minute+learning_interval)%60
 
-
-minutes = datetime.datetime.now().minute
-minuteDeviceExport = datetime.datetime.now().minute+1
-
+if learning == True:
+    minutes = datetime.datetime.now().minute+interval+learning_interval%60
+    minuteDeviceExport = (datetime.datetime.now().minute+interval+learning_interval)%60
+else:
+    minutes = datetime.datetime.now().minute+interval%60
+    minuteDeviceExport = (datetime.datetime.now().minute+interval)%60
 
 
 def start():
@@ -33,7 +38,7 @@ def start():
         os.system(monitor_disable)
         writeVentorCount()
         exportStackBar()
-        #os.system("R < graphexport.R --no-save")
+        os.system(Rcommand)
         sys.exit()
 
 
@@ -51,16 +56,20 @@ def sniff(interface):
    
         
     def loop(header, data):
-        global minutes,minuteDeviceExport,StackBarActualRecord,StackBarAllRecords,StackBarMAC
+        global minutes,minuteDeviceExport,StackBarActualRecord,StackBarAllRecords,StackBarMAC,learning,minuteLearning,interval
         
-        if minutes!= datetime.datetime.now().minute:
-            minutes=datetime.datetime.now().minute
+        if learning == True and minuteLearning == datetime.datetime.now().minute:
+            learning = False
+
+
+        if minutes == datetime.datetime.now().minute:
+            minutes=(datetime.datetime.now().minute+interval)%60
             addNumberOfDevices()
         
 
         if minuteDeviceExport== datetime.datetime.now().minute:
             
-            minuteDeviceExport=(datetime.datetime.now().minute+1)%60
+            minuteDeviceExport=(datetime.datetime.now().minute+interval)%60
             print('Time' + str(datetime.datetime.now().minute))
             print('NextTime' + str(minuteDeviceExport))
             writeNumberOfDevice()
@@ -69,8 +78,7 @@ def sniff(interface):
             StackBarAllRecords[str(time.time())] = StackBarActualRecord
             StackBarMAC=[]
             StackBarActualRecord={}
-
-                       
+                  
         
         
         try:
@@ -90,7 +98,7 @@ def sniff(interface):
                     'access_point_address': to_address(frame.mgmt.bssid)
                 }
                 addToFullExport(record["source_address"],record["strength"],record["subtype"])
-                #print record
+                print record
                 
             elif frame.type == dpkt.ieee80211.CTL_TYPE:
                 record = {
@@ -104,7 +112,7 @@ def sniff(interface):
                     'access_point_address': '(n/a)' 
                 }
                 #addToArray(record["source_address"],record["strength"])
-                #print record
+                print record
                 
             elif frame.type == dpkt.ieee80211.DATA_TYPE:
                 record = {
@@ -118,11 +126,11 @@ def sniff(interface):
                     'access_point_address': to_address(frame.data_frame.bssid) if hasattr(frame.data_frame, 'bssid') else '(n/a)'
                 }
                 addToFullExport(record["source_address"],record["strength"],record["subtype"])
-                #print record
+                print record
             
                  
         except Exception as e:
-            print e            
+            print ''            
     packets.loop(-1, loop)
 
 def channels_switch(newchange):
@@ -137,6 +145,8 @@ NumberOfDevicesExport=[["Date","number",]]
 
 foundedMac = []
 SSIDMac = []
+
+staticDevices = []
 
 
 foundedMacVendor=[]
@@ -180,8 +190,17 @@ def checkMac(mac,manufacter):
 
 
 def addToFullExport(mac,rssi,sub_type):
-    if rssi<-rssi_level_filter:
+    if rssi<rssi_level_filter:
         return
+
+    if mac in staticDevices:
+        print("ignored")
+        return
+
+    if learning == True and mac not in staticDevices:
+        staticDevices.append(mac)
+        print("Mac:" + mac + "ignored")
+
 
     if sub_type in sub_type_filter and mac not in SSIDMac:
         SSIDMac.append(mac)
