@@ -1,4 +1,4 @@
-
+print("Graph export started.")
 args<-commandArgs(TRUE)
 q = args[1]
 
@@ -59,9 +59,7 @@ pie(myfiles3$Count,labels=paste(myfiles3$Vendor, myfiles3$Count),  main="Pie Cha
 plot(myfiles2$Date, myfiles2$number,type="l")
 
 
-
-
-
+print("50%")
 
 pdf("graphs.pdf",width=30,height=30,paper='special') 
 #mac - pocet paketu
@@ -97,6 +95,7 @@ lines(smoothingSpline)
 
 
 
+
 #graphforeverymac
 library(ggplot2) 
 ggplot(myfiles, aes(x = Date, y = signal, colour = mac)) +  geom_point() +  facet_wrap( ~ mac)
@@ -104,6 +103,9 @@ ggplot(myfiles, aes(x = Date, y = signal, colour = mac)) +  geom_point() +  face
 
 
 ggplot(r, aes(x = GroupDate, y = Signal, colour = GroupMac)) +  geom_point() +  facet_wrap( ~ GroupMac)
+print("100%")
+print("Done")
+
 
 
 dev.off()

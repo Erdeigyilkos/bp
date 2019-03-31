@@ -12,4 +12,4 @@ rssi_level_filter = -90
 learning = False
 learning_interval = 3
 
-interval = 5
+export_interval = 5

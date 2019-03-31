@@ -10,19 +10,18 @@ from oui import *
 from settings import * 
 import csv
 
+exportname="/export-" + str(time.time())
 dirname, filename = os.path.split(os.path.abspath(__file__))
-dirname+="/export"
+dirname+=exportname
 Rcommand= "sudo Rscript graphexport.R " + dirname
 
 
 minuteLearning = (datetime.datetime.now().minute+learning_interval)%60
 
 if learning == True:
-    minutes = datetime.datetime.now().minute+interval+learning_interval%60
-    minuteDeviceExport = (datetime.datetime.now().minute+interval+learning_interval)%60
+    minuteDeviceExport = (datetime.datetime.now().minute+export_interval+learning_interval)%60
 else:
-    minutes = datetime.datetime.now().minute+interval%60
-    minuteDeviceExport = (datetime.datetime.now().minute+interval)%60
+    minuteDeviceExport = (datetime.datetime.now().minute+export_interval)%60
 
 
 def start():
@@ -46,7 +45,7 @@ def to_address(address):
     return ':'.join('%02x' % ord(b) for b in address)
 
 def sniff(interface):
-    channels_switch(5)
+    channels_switch(6)
     max_packet_size = 256
     promiscuous = 0
     timeout = 100
@@ -56,25 +55,19 @@ def sniff(interface):
    
         
     def loop(header, data):
-        global minutes,minuteDeviceExport,StackBarActualRecord,StackBarAllRecords,StackBarMAC,learning,minuteLearning,interval
+        global minuteDeviceExport,StackBarActualRecord,StackBarAllRecords,StackBarMAC,learning,minuteLearning,export_interval
         
         if learning == True and minuteLearning == datetime.datetime.now().minute:
             learning = False
-
-
-        if minutes == datetime.datetime.now().minute:
-            minutes=(datetime.datetime.now().minute+interval)%60
-            addNumberOfDevices()
-        
-
+         
         if minuteDeviceExport== datetime.datetime.now().minute:
+            minuteDeviceExport=(datetime.datetime.now().minute+export_interval)%60
             
-            minuteDeviceExport=(datetime.datetime.now().minute+interval)%60
-            print('Time' + str(datetime.datetime.now().minute))
-            print('NextTime' + str(minuteDeviceExport))
             writeNumberOfDevice()
-            writeFullTraffic()
             
+            writeFullTraffic()
+                    
+
             StackBarAllRecords[str(time.time())] = StackBarActualRecord
             StackBarMAC=[]
             StackBarActualRecord={}
@@ -97,8 +90,8 @@ def sniff(interface):
                     'access_point_name': frame.ssid.data if hasattr(frame, 'ssid') else '(n/a)',
                     'access_point_address': to_address(frame.mgmt.bssid)
                 }
-                addToFullExport(record["source_address"],record["strength"],record["subtype"])
-                print record
+                ProcessFrame(record)
+                #print record
                 
             elif frame.type == dpkt.ieee80211.CTL_TYPE:
                 record = {
@@ -111,8 +104,8 @@ def sniff(interface):
                     'access_point_name': '(n/a)', 
                     'access_point_address': '(n/a)' 
                 }
-                #addToArray(record["source_address"],record["strength"])
-                print record
+                ProcessFrame(record)
+                #print record
                 
             elif frame.type == dpkt.ieee80211.DATA_TYPE:
                 record = {
@@ -125,8 +118,8 @@ def sniff(interface):
                     'access_point_name': '(n/a)', 
                     'access_point_address': to_address(frame.data_frame.bssid) if hasattr(frame.data_frame, 'bssid') else '(n/a)'
                 }
-                addToFullExport(record["source_address"],record["strength"],record["subtype"])
-                print record
+                ProcessFrame(record)
+                #print record
             
                  
         except Exception as e:
@@ -134,27 +127,22 @@ def sniff(interface):
     packets.loop(-1, loop)
 
 def channels_switch(newchange):
-    channel = str(channels[0])
+    channel = str(6)
     os.system(change_channel % channel)
 
 
-recordToExport=[]
-recordToExport.append(["Date","mac","signal","vendor"])
-
-NumberOfDevicesExport=[["Date","number",]]
+FullRecordsToExport=[]
+FullRecordsToExport.append(["Date","mac","signal","vendor"])
 
 foundedMac = []
 SSIDMac = []
 
 staticDevices = []
+staticDevices.append('')
 
 
 foundedMacVendor=[]
 DeviceVendor = {}
-
-def addNumberOfDevices():
-    NumberOfDevicesExport.append([str(time.time()),len(foundedMac)])
-    while len(foundedMac) > 0 : foundedMac.pop()
 
 
 StackBarAllRecords = {}
@@ -162,8 +150,8 @@ StackBarActualRecord={}
 StackBarMAC=[]
 StackBarManufacter=[]
 
-def checkMac(mac,manufacter):
-    global DeviceVendor,StackBarMAC
+def ProcessMac(mac,manufacter):
+    global DeviceVendor,StackBarMAC,foundedMacVendor
 
     if mac not in StackBarMAC:
         StackBarMAC.append(mac)
@@ -189,54 +177,65 @@ def checkMac(mac,manufacter):
 
 
 
-def addToFullExport(mac,rssi,sub_type):
-    if rssi<rssi_level_filter:
+def ProcessFrame(record):
+    
+    if record["strength"]<rssi_level_filter:
         return
 
-    if mac in staticDevices:
+    if record["source_address"] in staticDevices:
         print("ignored")
         return
 
-    if learning == True and mac not in staticDevices:
-        staticDevices.append(mac)
-        print("Mac:" + mac + "ignored")
+    if learning == True and record["source_address"] not in staticDevices:
+        staticDevices.append(record["source_address"])
+        print("Mac:" + record["source_address"] + "ignored")
 
-
-    if sub_type in sub_type_filter and mac not in SSIDMac:
-        SSIDMac.append(mac)
+    if record["subtype"] in sub_type_filter and record["source_address"] not in SSIDMac:
+        SSIDMac.append(record["source_address"])
         return
     
-    if mac in SSIDMac:
+    if record["source_address"] in SSIDMac:
         return
 
-    if mac not in foundedMac:
-        foundedMac.append(mac)
+    if record["source_address"] not in foundedMac:
+        foundedMac.append(record["source_address"])
 
-    device_type = 'unknown'
-    if mac[0:8] in oui:
-        device_type = oui[mac[0:8]]
-        checkMac(mac,device_type)
+    record["device_type"]= 'unknown'
+    
+    if record["source_address"][0:8] in oui:
+        record["device_type"] = oui[record["source_address"][0:8]]
+        ProcessMac(record["source_address"],record["device_type"])
     
     
-    print(sub_type)
-    recordToExport.append([str(time.time()),mac,rssi,device_type])
-       
+    printFrame(record)
+    FullRecordsToExport.append([str(time.time()),record["source_address"],record["strength"],record["device_type"]])
+
+
+def printFrame(frame):
+    print('Sender:'+ frame["source_address"] + '  Type:' + frame["subtype"]  + '  Strength:' + str(frame["strength"]) + 'dBm')
+
 def writeNumberOfDevice():
-    name = 'export/Device/numberDevice' + str(datetime.datetime.now()) + '.csv'
+    global foundedMac
+    NumberOfDevicesExport=[["Date","number",]]
+    NumberOfDevicesExport.append([str(time.time()),len(foundedMac)])
+
+    name = dirname+'/Device/numberDevice' + str(datetime.datetime.now()) + '.csv'
     with open(name, "w") as output:
         writer = csv.writer(output, lineterminator='\n')
         writer.writerows(NumberOfDevicesExport)
-    while len(NumberOfDevicesExport) > 1 : NumberOfDevicesExport.pop()
+    foundedMac = []
 
 def writeFullTraffic():
-    name = 'export/Full/fullexport' + str(datetime.datetime.now()) + '.csv'
+    global FullRecordsToExport
+    name = dirname+'/Full/fullexport' + str(datetime.datetime.now()) + '.csv'
     with open(name, "w") as output:
         writer = csv.writer(output, lineterminator='\n')
-        writer.writerows(recordToExport)
-    while len(recordToExport) > 1 : recordToExport.pop()
+        writer.writerows(FullRecordsToExport)
+    FullRecordsToExport=[]
+    FullRecordsToExport.append(["Date","mac","signal","vendor"])
 
 def writeVentorCount():
-    name = 'export/Vendor/vendor' + str(datetime.datetime.now()) + '.csv'
+    name = dirname+'/Vendor/vendor' + str(datetime.datetime.now()) + '.csv'
     ExportList=[]
     ExportList.append(["Date","Vendor","Count"])
     for x, y in DeviceVendor.items():
@@ -287,24 +286,17 @@ def exportStackBar():
     print(StackBarExport)
     print('-----------EXPORT---------')
 
-    name = 'export/StackBar/stackBar' + str(datetime.datetime.now()) + '.csv'
+    name = dirname+'/StackBar/stackBar' + str(datetime.datetime.now()) + '.csv'
     with open(name, "w") as output:
         writer = csv.writer(output, lineterminator='\n')
         writer.writerows(StackBarExport)
-   
-
-
-    
+  
+ 
 def setupExportFolder():
-    if not os.path.exists("export"):
-        os.makedirs("export")
-    if not os.path.exists("export/Full"):
-        os.makedirs("export/Full")
-    if not os.path.exists("export/Device"):
-        os.makedirs("export/Device")
-    if not os.path.exists("export/Vendor"):
-        os.makedirs("export/Vendor")
-    if not os.path.exists("export/StackBar"):
-        os.makedirs("export/StackBar")
+    os.makedirs(dirname)
+    os.makedirs(dirname+"/Full")
+    os.makedirs(dirname+"/Device")
+    os.makedirs(dirname+"/Vendor")
+    os.makedirs(dirname+"/StackBar")
     
 start()
