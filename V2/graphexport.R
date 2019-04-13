@@ -1,7 +1,8 @@
-print("Graph export started.")
+
 args<-commandArgs(TRUE)
 q = args[1]
 
+print("Graph export started.")
 
 setwd(paste(q,"Full", sep="/"))
 files = list.files(pattern="fullexport.*.csv")
@@ -20,14 +21,12 @@ files = list.files(pattern="stackBar.*.csv")
 myfiles4 = do.call(rbind, lapply(files, function(x) read.csv(x)))
 
 
-
+library(anytime)
 
 setwd(args[1])
 
 
 pdf("graphs-device.pdf",width=20,height=15,paper='special') 
-
-
 
 library(RColorBrewer)
 n <- 60
@@ -43,8 +42,8 @@ par(xpd=T, mar=par()$mar+c(5,20,0,0))
 data = myfiles4
 data$Date<-NULL
 
-barplot(t(data), main="Barplot", ylab="Signal", col=colors, space=0.1, cex.axis=0.8, las=1,
-   names.arg=c(myfiles4$Date), cex=0.8) 
+barplot(t(data), main="Počet rozeznaných zařízení dle výrobců", xlab="Čas",ylab="Počet rozeznaných zařízení (ks)", col=colors, space=0.1, cex.axis=0.8, las=1,
+   names.arg=c(anytime(myfiles4$Date)), cex=0.8) 
    
 legend("left", inset=-.325, names(data), cex=0.8, fill=colors);
 
@@ -53,19 +52,59 @@ legend("left", inset=-.325, names(data), cex=0.8, fill=colors);
 par(mar=c(10,10,10,10)+0.1)
 slices <- c(myfiles3$Count)
 lbls <- c(myfiles3$Vendor)
-pie(myfiles3$Count,labels=paste(myfiles3$Vendor, myfiles3$Count),  main="Pie Chart of Devices")
+pie(myfiles3$Count,labels=paste(myfiles3$Vendor, myfiles3$Count),  main="Počet rozeznaných zařízení dle výrobců")
 
 
-plot(myfiles2$Date, myfiles2$number,type="l")
+
+orderpie <- myfiles3[order(-myfiles3$Count),]
+if(nrow(orderpie) > 10){
+orderpie <- myfiles3[order(-myfiles3$Count),]
+toppie <- orderpie[1:10,]
+par(mar=c(10,10,10,10)+0.1)
+slices <- c(toppie$Count)
+lbls <- c(toppie$Vendor)
+pie(toppie$Count,labels=paste(toppie$Vendor, toppie$Count),  main="Počet rozeznaných zařízení dle výrobců - top 10")
+
+}
+
+
+
+
+library(anytime)
+plot(myfiles2$number,type="l",xaxt="n",main="Počet nalezených zařízení",xlab="Čas",ylab="Počet nalezených zařízení (ks)")
+axis(1, at=1:nrow(myfiles2),labels=anytime(myfiles2$Date))
+
+library(anytime)
+plot(smooth.spline(myfiles2$number),type="l",xaxt="n",main="Počet nalezených zařízení",xlab="Čas",ylab="Počet nalezených zařízení (ks)")
+axis(1, at=1:nrow(myfiles2),labels=anytime(myfiles2$Date))
+
+
 
 
 print("50%")
 
-pdf("graphs.pdf",width=30,height=30,paper='special') 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+pdf("graphs.pdf",width=20,height=20,paper='special') 
 #mac - pocet paketu
 par(mar=c(10,10,10,10)+0.1)
 counts <- table(myfiles$mac)
-barplot(counts, main="Pocet detekovanych paketu jednotlivych stanic", las=2)
+barplot(counts, main="Pocet odchycených Wi-Fi rámců jednotlivých zařízení",ylab="Počet odchycených Wi-Fi rámců (ks)",xlab="Odchycené MAC adresy", las=2)
 
 
 
@@ -95,14 +134,13 @@ lines(smoothingSpline)
 
 
 
-
 #graphforeverymac
 library(ggplot2) 
-ggplot(myfiles, aes(x = Date, y = signal, colour = mac)) +  geom_point() +  facet_wrap( ~ mac)
+ggplot(myfiles, aes(x = Date, y = signal, colour = mac)) +  geom_point() +  facet_wrap( ~ mac)+theme(legend.position="none")
 
 
 
-ggplot(r, aes(x = GroupDate, y = Signal, colour = GroupMac)) +  geom_point() +  facet_wrap( ~ GroupMac)
+#ggplot(r, aes(x = GroupDate, y = Signal, colour = GroupMac)) +  geom_point() +  facet_wrap( ~ GroupMac)
 print("100%")
 print("Done")
 

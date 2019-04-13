@@ -25,8 +25,7 @@ else:
 
 
 def start():
-
-    SSIDMac.append("00:00:00:00:00:01")
+ 
     setupExportFolder()
     os.system(monitor_enable)
 
@@ -37,7 +36,8 @@ def start():
         os.system(monitor_disable)
         writeVentorCount()
         exportStackBar()
-        os.system(Rcommand)
+        if(generate_graph == True):
+            os.system(Rcommand)
         sys.exit()
 
 
@@ -45,15 +45,15 @@ def to_address(address):
     return ':'.join('%02x' % ord(b) for b in address)
 
 def sniff(interface):
-    channels_switch(6)
     max_packet_size = 256
     promiscuous = 0
     timeout = 100
     packets = pcapy.open_live(interface, max_packet_size, promiscuous, timeout)
     packets.setfilter('') 
 
-   
-        
+    
+    print("Scanning")    
+    
     def loop(header, data):
         global minuteDeviceExport,StackBarActualRecord,StackBarAllRecords,StackBarMAC,learning,minuteLearning,export_interval
         
@@ -61,6 +61,9 @@ def sniff(interface):
             learning = False
          
         if minuteDeviceExport== datetime.datetime.now().minute:
+            
+            channels_switch()
+
             minuteDeviceExport=(datetime.datetime.now().minute+export_interval)%60
             
             writeNumberOfDevice()
@@ -71,14 +74,17 @@ def sniff(interface):
             StackBarAllRecords[str(time.time())] = StackBarActualRecord
             StackBarMAC=[]
             StackBarActualRecord={}
+
+            exportStackBar()
+            writeVentorCount()
                   
         
         
         try:
+            
             packet = dpkt.radiotap.Radiotap(data)
             packet_signal = -(256 - packet.ant_sig.db)
             frame = packet.data
-            
             if frame.type == dpkt.ieee80211.MGMT_TYPE:
                 record = {
                     'timestamp': '0',
@@ -104,7 +110,7 @@ def sniff(interface):
                     'access_point_name': '(n/a)', 
                     'access_point_address': '(n/a)' 
                 }
-                ProcessFrame(record)
+                #ProcessFrame(record)
                 #print record
                 
             elif frame.type == dpkt.ieee80211.DATA_TYPE:
@@ -126,8 +132,9 @@ def sniff(interface):
             print ''            
     packets.loop(-1, loop)
 
-def channels_switch(newchange):
-    channel = str(6)
+def channels_switch():
+    global minuteDeviceExport
+    channel = str(channels[minuteDeviceExport%len(channels)])
     os.system(change_channel % channel)
 
 
@@ -138,7 +145,7 @@ foundedMac = []
 SSIDMac = []
 
 staticDevices = []
-staticDevices.append('')
+
 
 
 foundedMacVendor=[]
@@ -178,35 +185,24 @@ def ProcessMac(mac,manufacter):
 
 
 def ProcessFrame(record):
-    
     if record["strength"]<rssi_level_filter:
         return
-
-    if record["source_address"] in staticDevices:
-        print("ignored")
-        return
-
     if learning == True and record["source_address"] not in staticDevices:
         staticDevices.append(record["source_address"])
         print("Mac:" + record["source_address"] + "ignored")
-
+    if record["source_address"] in staticDevices:        
+        return
     if record["subtype"] in sub_type_filter and record["source_address"] not in SSIDMac:
         SSIDMac.append(record["source_address"])
         return
-    
     if record["source_address"] in SSIDMac:
         return
-
     if record["source_address"] not in foundedMac:
         foundedMac.append(record["source_address"])
-
     record["device_type"]= 'unknown'
-    
     if record["source_address"][0:8] in oui:
         record["device_type"] = oui[record["source_address"][0:8]]
         ProcessMac(record["source_address"],record["device_type"])
-    
-    
     printFrame(record)
     FullRecordsToExport.append([str(time.time()),record["source_address"],record["strength"],record["device_type"]])
 
@@ -235,6 +231,7 @@ def writeFullTraffic():
     FullRecordsToExport.append(["Date","mac","signal","vendor"])
 
 def writeVentorCount():
+    os.system("sudo rm " + dirname + "/Vendor/vendor*")
     name = dirname+'/Vendor/vendor' + str(datetime.datetime.now()) + '.csv'
     ExportList=[]
     ExportList.append(["Date","Vendor","Count"])
@@ -244,47 +241,38 @@ def writeVentorCount():
     with open(name, "w") as output:
         writer = csv.writer(output,lineterminator='\n')
         writer.writerows(ExportList)
-    DeviceVendor.clear()
+    
 
 def exportStackBar():
+    
+    os.system("sudo rm " + dirname + "/StackBar/stack*")
     global StackBarAllRecords,StackBarManufacter
+    
+    StackBarAllRecordsExport = StackBarAllRecords
+    StackBarManufacterExport = StackBarManufacter
 
-    print('--------PRED dopnineni 0-----------')
-    for x,y in StackBarAllRecords.items():
-        print(x)
-        print(StackBarAllRecords[x])
-    print('--------------/PRED dopleni 0-----------')
-
-    for time,manufacter_dict in StackBarAllRecords.items():
-        for manufacter in StackBarManufacter:
+   
+    for time,manufacter_dict in StackBarAllRecordsExport.items():
+        for manufacter in StackBarManufacterExport:
             if manufacter not in manufacter_dict:
                 manufacter_dict[manufacter]=0
 
-    print('--------Po doplneni 0-----------')
-    for x in sorted(StackBarAllRecords.iterkeys()):
-        print(x)
-        print(StackBarAllRecords[x])
-    print('--------------/Po dolneni 0-----------')
-
+   
     StackBarExport=[]
     StackBarLine=["Date"]
         
-    for manufacter in sorted(StackBarAllRecords.values()[0].iterkeys()):
+    for manufacter in sorted(StackBarAllRecordsExport.values()[0].iterkeys()):
         StackBarLine.append(manufacter)
     
     StackBarExport.append(StackBarLine)
     
     StackBarLine=[]
-    for time in sorted(StackBarAllRecords.iterkeys()):
+    for time in sorted(StackBarAllRecordsExport.iterkeys()):
         StackBarLine.append(time)
-        for manufacter in sorted(StackBarAllRecords[time].iterkeys()):
-            StackBarLine.append(StackBarAllRecords[time][manufacter])
+        for manufacter in sorted(StackBarAllRecordsExport[time].iterkeys()):
+            StackBarLine.append(StackBarAllRecordsExport[time][manufacter])
         StackBarExport.append(StackBarLine)
         StackBarLine=[]
-
-    print('-----------EXPORT---------')
-    print(StackBarExport)
-    print('-----------EXPORT---------')
 
     name = dirname+'/StackBar/stackBar' + str(datetime.datetime.now()) + '.csv'
     with open(name, "w") as output:
