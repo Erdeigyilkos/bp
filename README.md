@@ -1,2 +1,0 @@
-# bp
-bakalářská práce
