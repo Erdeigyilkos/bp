@@ -34,8 +34,11 @@ def start():
     except KeyboardInterrupt: 
         
         os.system(monitor_disable)
-        writeVentorCount()
+        writeNumberOfDevice()
+        writeFullTraffic()
         exportStackBar()
+        writeVentorCount()
+               
         if(generate_graph == True):
             os.system(Rcommand)
         sys.exit()
@@ -70,7 +73,6 @@ def sniff(interface):
             
             writeFullTraffic()
                     
-
             StackBarAllRecords[str(time.time())] = StackBarActualRecord
             StackBarMAC=[]
             StackBarActualRecord={}

@@ -16,7 +16,7 @@ print("Device data loaded.")
 
 setwd(paste(q,"Vendor", sep="/"))
 files = list.files(pattern="vendor.*.csv")
-myfiles3 = do.call(rbind, lapply(files, function(x) read.csv(x)))
+myfiles3 = do.call(rbind, lapply(files, function(x) read.csv(x,stringsAsFactors = FALSE)))
 print("Vendor data loaded.")
 
 setwd(paste(q,"StackBar", sep="/"))
@@ -42,19 +42,22 @@ data = myfiles4
 data$Date<-NULL
 barplot(t(data), main="Počet rozeznaných zařízení dle výrobců", xlab="Čas",ylab="Počet rozeznaných zařízení (ks)", col=colors, space=0.1, cex.axis=0.8, las=1,
    names.arg=c(anytime(myfiles4$Date)), cex=0.8) 
-legend("left", inset=-.325, names(data), cex=0.8, fill=colors);
+legend("left", inset=-.590, names(data), cex=0.8, fill=colors);
 dev.off()
 
 png("piechart.png", width = 960, height = 540)
 
 orderpie <- myfiles3[order(-myfiles3$Count),]
-if(nrow(orderpie) > 8){
+if(nrow(orderpie) > 5){
 orderpie <- myfiles3[order(-myfiles3$Count),]
-toppie <- orderpie[1:8,]
+others <- orderpie[6:nrow(orderpie),]
+toppie <- orderpie[1:5,]
+toppie[nrow(toppie) + 1,] = list("225","Ostatní",sum(others$Count))
 par(mar=c(10,10,10,10)+0.1)
+
 slices <- c(toppie$Count)
 lbls <- c(toppie$Vendor)
-pie(toppie$Count,labels=paste(toppie$Vendor, toppie$Count),  main="Počet rozeznaných zařízení dle výrobců - top 8")
+pie(toppie$Count,labels=paste(toppie$Vendor, toppie$Count),  main="Počet rozeznaných zařízení dle výrobců - top 5")
 }else{
 par(mar=c(10,10,10,10)+0.1)
 slices <- c(myfiles3$Count)
@@ -68,10 +71,10 @@ png("numberofdevice.png", width = 960, height = 540)
 
 
 if(nrow(myfiles2)>10){
-plot(smooth.spline(myfiles2$number),type="l",xaxt="n",main="Počet nalezených zařízení",xlab="Čas",ylab="Počet nalezených zařízení (ks)")
+plot(smooth.spline(myfiles2$number),ylim=c(0,max(myfiles2$number)), type="l",xaxt="n",main="Počet nalezených zařízení",xlab="Čas",ylab="Počet nalezených zařízení (ks)")
 axis(1, at=1:nrow(myfiles2),labels=anytime(myfiles2$Date))
 }else{
-plot(myfiles2$number,type="l",xaxt="n",main="Počet nalezených zařízení",xlab="Čas",ylab="Počet nalezených zařízení (ks)")
+plot(myfiles2$number,type="l",ylim=c(0,max(myfiles2$number)), xaxt="n",main="Počet nalezených zařízení",xlab="Čas",ylab="Počet nalezených zařízení (ks)")
 axis(1, at=1:nrow(myfiles2),labels=anytime(myfiles2$Date))
 
 }
@@ -117,7 +120,7 @@ dev.off()
 
 
 
-pdf("graphs-device.pdf",width=20,height=15,paper='special') 
+pdf("graphs.pdf",width=15,height=10,paper='special') 
 
 library(RColorBrewer)
 n <- 60
@@ -129,33 +132,30 @@ data = myfiles4
 data$Date<-NULL
 barplot(t(data), main="Počet rozeznaných zařízení dle výrobců", xlab="Čas",ylab="Počet rozeznaných zařízení (ks)", col=colors, space=0.1, cex.axis=0.8, las=1,
    names.arg=c(anytime(myfiles4$Date)), cex=0.8) 
-legend("left", inset=-.325, names(data), cex=0.8, fill=colors);
+legend("left", inset=-.5, names(data), cex=0.8, fill=colors);
 
 
 #numberofdevice
 orderpie <- myfiles3[order(-myfiles3$Count),]
-if(nrow(orderpie) > 8){
+if(nrow(orderpie) > 5){
 orderpie <- myfiles3[order(-myfiles3$Count),]
-toppie <- orderpie[1:8,]
+others <- orderpie[6:nrow(orderpie),]
+toppie <- orderpie[1:5,]
+toppie[nrow(toppie) + 1,] = list("225","Ostatní",sum(others$Count))
 par(mar=c(10,10,10,10)+0.1)
+
 slices <- c(toppie$Count)
 lbls <- c(toppie$Vendor)
-pie(toppie$Count,labels=paste(toppie$Vendor, toppie$Count),  main="Počet rozeznaných zařízení dle výrobců - top 8")
-}else{
-par(mar=c(10,10,10,10)+0.1)
-slices <- c(myfiles3$Count)
-lbls <- c(myfiles3$Vendor)
-pie(myfiles3$Count,labels=paste(myfiles3$Vendor, myfiles3$Count),  main="Počet rozeznaných zařízení dle výrobců")
+pie(toppie$Count,labels=paste(toppie$Vendor, toppie$Count),  main="Počet rozeznaných zařízení dle výrobců - top 5")
 }
 
 
-library(anytime)
-plot(myfiles2$number,type="l",xaxt="n",main="Počet nalezených zařízení",xlab="Čas",ylab="Počet nalezených zařízení (ks)")
-axis(1, at=1:nrow(myfiles2),labels=anytime(myfiles2$Date))
-
 
 if(nrow(myfiles2)>10){
-plot(smooth.spline(myfiles2$number),type="l",xaxt="n",main="Počet nalezených zařízení",xlab="Čas",ylab="Počet nalezených zařízení (ks)")
+plot(smooth.spline(myfiles2$number),ylim=c(0,max(myfiles2$number)),type="l",xaxt="n",main="Počet nalezených zařízení",xlab="Čas",ylab="Počet nalezených zařízení (ks)")
+axis(1, at=1:nrow(myfiles2),labels=anytime(myfiles2$Date))
+}else{
+plot(myfiles2$number,ylim=c(0,max(myfiles2$number)),type="l",xaxt="n",main="Počet nalezených zařízení",xlab="Čas",ylab="Počet nalezených zařízení (ks)")
 axis(1, at=1:nrow(myfiles2),labels=anytime(myfiles2$Date))
 }
 
@@ -170,6 +170,7 @@ dataframebar = data.frame(counts)
 orderbar <- dataframebar[order(-dataframebar$Freq),]
 topbar <- orderbar[1:60,]
 topbar = topbar[-1,]
+
 barplot(topbar$Freq,main="Pocet odchycených Wi-Fi rámců jednotlivých zařízení - top 60",names.arg = topbar$Var1,las=2)
 title(ylab="Počet odchycených Wi-Fi rámců (ks)", line=-1.5)
 }else{
