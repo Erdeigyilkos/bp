@@ -1,4 +1,4 @@
-\documentclass[12pt]{article}
+\documentclass[11pt]{article}
 
  \usepackage{subfig}		
  \usepackage{tikz}		
@@ -8,44 +8,65 @@
 \usepackage[czech]{babel}
 \usepackage{graphicx}
 \usepackage{graphicx}
-\usepackage[margin=0.5in]{geometry}
+\usepackage[margin=1in]{geometry}
+\usepackage{blindtext}
 
- 
+ \title{\textbf{PROTOKOL \\ bakalářské aplikace na čítání osob na základě analýzy WiFi~provozu}}
+\date{ }
+
 \begin{document}
 
-\tableofcontents
+\maketitle
 
-\section{Úvod}
 
-Tady bude něco ve stylu, že se jedná o protokol ze dne \today.
+Tento protokol byl automaticky vygenerován bakalářskou aplikací na čítání osob na základě analýzy WiFi provozu.
+Grafy byly vygenerovány dle Vámi zadaných parametrů. 
 
-\section{Grafy}
-A tady samotné grafy
-\begin{figure}[h!]
-    \includegraphics[width=\linewidth]{bargraph.png}
-    \caption{A boat.}
-    \label{fig:boat1}
-  \end{figure}
 
-  \begin{figure}[h!]
-    \includegraphics[width=\linewidth]{numberofdevice.png}
-    \caption{A boat.}
-    \label{fig:boat1}
-  \end{figure}
+\vspace{1cm}
 
-  \begin{figure}[h!]
+\section*{Graf č.1: Počet rozeznaných zařízení dle výrobců v časových intervalech}
+Tento graf prezentuje počty rozeznaných zařízení odchycených v uživatelem zvolených časových intervalech, a to dle jednotlivých výrobců. Osa X zobrazuje časové intervaly a osa Y zobrazuje počty odchycených a zároveň rozeznaných zařízení v kusech. 
+\vspace{1cm}
+
+\begin{figure}[!h]
+  \includegraphics[width=\linewidth]{stackbar.png}
+
+\end{figure}
+
+
+\newpage
+  \section*{Graf č.2: Počet rozeznaných zařízení dle výrobců}
+  Tento graf zobrazuje počty zařízení jednotlivých výrobců odchycených bakalářskou aplikací za celou dobu sběru dat. U výseče je uvedeno jméno výrobce, kterého daná výseč znázorňuje a počet jeho odchycených zařízení. V případě, že se Vám vygeneroval výsečový graf znázorňující počet odchycených zařízení u pěti nejčastějších výrobců, byla bakalářskou aplikací odchycena zařízení s velkým počtem výrobců. Graf s vyznačením všech výrobců by byl nečitelný. 
+
+
+  \begin{figure}[!h]
     \includegraphics[width=\linewidth]{piechart.png}
-    \caption{A boat.}
-    \label{fig:boat1}
-  \end{figure}
 
-  \begin{figure}[h!]
-    \includegraphics[width=\linewidth]{stackbar.png}
-    \caption{A boat.}
-    \label{fig:boat1}
   \end{figure}
 
 
+  \newpage
+  \section*{Graf č.3: Počet nalezených zařízení}
+  Tento graf zobrazuje počty všech zařízení odchycených v daných časových intervalech. Graf zaznamenává počty všech odchycených zařízení, tzn. i těch, u kterých se nepodařilo zjistit výrobce. Osa X zobrazuje časové intervaly a osa Y zobrazuje počty všech odchycených zařízení v kusech. V případě tohoto grafu je z estetických důvodu prováděna mírná korekce výsledné křivky.
+  \vspace{0.5cm}
 
+
+  \begin{figure}[!h]
+    \includegraphics[width=\linewidth]{numberofdevice.png}
+
+  \end{figure}
+
+
+  \newpage
+  \section*{Graf č.4: Počet odchycených WiFi rámců jednotlivých MAC adres}
+  Tento graf zobrazuje počty odchycených WiFi rámců jednotlivých MAC adres. Na ose X se zobrazuje jednotlivé odchycené MAC adresy zařízení a na ose Y se zobrazuje příslušným sloupcem nad MAC adresou počet jejich odchycených WiFi rámců v kusech. V případě, že se Vám vygeneroval graf znázorňující počet WiFi rámců u šedesáti nejčastěji odchycených MAC adres, byly bakalářskou aplikací odchyceny WiFi rámců velkého početu různých MAC adres. Graf s vyznačením všech MAC adres by byl nečitelný. 
+
+
+  \begin{figure}[!h]
+    \includegraphics[width=\linewidth]{bargraph.png}
+
+  \end{figure}
+Generováno dne \today\
 
 \end{document}

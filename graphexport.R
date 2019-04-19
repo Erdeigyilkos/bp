@@ -40,7 +40,7 @@ colors =  sample(col_vector, n)
 par(xpd=T, mar=par()$mar+c(5,20,0,0))
 data = myfiles4
 data$Date<-NULL
-barplot(t(data), main="Počet rozeznaných zařízení dle výrobců", xlab="Čas",ylab="Počet rozeznaných zařízení (ks)", col=colors, space=0.1, cex.axis=0.8, las=1,
+barplot(t(data), main="Počet rozeznaných zařízení dle výrobců", cex.main=2,xlab="Čas",ylab="Počet rozeznaných zařízení (ks)", col=colors, space=0.1, cex.axis=0.8, las=1,
    names.arg=c(anytime(myfiles4$Date)), cex=0.8) 
 legend("left", inset=-.590, names(data), cex=0.8, fill=colors);
 dev.off()
@@ -57,12 +57,12 @@ par(mar=c(10,10,10,10)+0.1)
 
 slices <- c(toppie$Count)
 lbls <- c(toppie$Vendor)
-pie(toppie$Count,labels=paste(toppie$Vendor, toppie$Count),  main="Počet rozeznaných zařízení dle výrobců - top 5")
+pie(toppie$Count,labels=paste(toppie$Vendor, toppie$Count), cex.main=2, main="Počet rozeznaných zařízení dle výrobců - top 5")
 }else{
 par(mar=c(10,10,10,10)+0.1)
 slices <- c(myfiles3$Count)
 lbls <- c(myfiles3$Vendor)
-pie(myfiles3$Count,labels=paste(myfiles3$Vendor, myfiles3$Count),  main="Počet rozeznaných zařízení dle výrobců")
+pie(myfiles3$Count,labels=paste(myfiles3$Vendor, myfiles3$Count),  cex.main=2,main="Počet rozeznaných zařízení dle výrobců")
 }
 
 dev.off()
@@ -71,10 +71,10 @@ png("numberofdevice.png", width = 960, height = 540)
 
 
 if(nrow(myfiles2)>10){
-plot(smooth.spline(myfiles2$number),ylim=c(0,max(myfiles2$number)), type="l",xaxt="n",main="Počet nalezených zařízení",xlab="Čas",ylab="Počet nalezených zařízení (ks)")
+plot(smooth.spline(myfiles2$number),ylim=c(0,max(myfiles2$number)),cex.main=2, type="l",xaxt="n",main="Počet nalezených zařízení",xlab="Čas",ylab="Počet nalezených zařízení (ks)")
 axis(1, at=1:nrow(myfiles2),labels=anytime(myfiles2$Date))
 }else{
-plot(myfiles2$number,type="l",ylim=c(0,max(myfiles2$number)), xaxt="n",main="Počet nalezených zařízení",xlab="Čas",ylab="Počet nalezených zařízení (ks)")
+plot(myfiles2$number,type="l",ylim=c(0,max(myfiles2$number)),cex.main=2, xaxt="n",main="Počet nalezených zařízení",xlab="Čas",ylab="Počet nalezených zařízení (ks)")
 axis(1, at=1:nrow(myfiles2),labels=anytime(myfiles2$Date))
 
 }
@@ -91,12 +91,12 @@ dataframebar = data.frame(counts)
 orderbar <- dataframebar[order(-dataframebar$Freq),]
 topbar <- orderbar[1:60,]
 topbar = topbar[-1,]
-barplot(topbar$Freq,main="Pocet odchycených Wi-Fi rámců jednotlivých zařízení - top 60",names.arg = topbar$Var1,las=2)
+barplot(topbar$Freq,main="Počet odchycených Wi-Fi rámců jednotlivých MAC adres - top 60",cex.main=2,names.arg = topbar$Var1,las=2)
 title(ylab="Počet odchycených Wi-Fi rámců (ks)", line=-1.5)
 }else{
 par(mar=c(11,11,11,11)+0.1)
 counts <- table(myfiles$mac)
-barplot(counts, main="Pocet odchycených Wi-Fi rámců jednotlivých zařízení", las=2)
+barplot(counts, main="Počet odchycených Wi-Fi rámců jednotlivých MAC adres", cex.main=2,las=2)
 title(ylab="Počet odchycených Wi-Fi rámců (ks)", line=-1.5)
 }
 
@@ -171,12 +171,12 @@ orderbar <- dataframebar[order(-dataframebar$Freq),]
 topbar <- orderbar[1:60,]
 topbar = topbar[-1,]
 
-barplot(topbar$Freq,main="Pocet odchycených Wi-Fi rámců jednotlivých zařízení - top 60",names.arg = topbar$Var1,las=2)
+barplot(topbar$Freq,main="Pocet odchycených Wi-Fi rámců jednotlivých MAC adres - top 60",names.arg = topbar$Var1,las=2)
 title(ylab="Počet odchycených Wi-Fi rámců (ks)", line=-1.5)
 }else{
 par(mar=c(11,11,11,11)+0.1)
 counts <- table(myfiles$mac)
-barplot(counts, main="Pocet odchycených Wi-Fi rámců jednotlivých zařízení", las=2)
+barplot(counts, main="Pocet odchycených Wi-Fi rámců jednotlivých MAC adres", las=2)
 title(ylab="Počet odchycených Wi-Fi rámců (ks)", line=-1.5)
 }
 
